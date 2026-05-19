@@ -11,6 +11,7 @@ jobs:
   deploy:
     name: Deploy to AWS
     runs-on: ubuntu-latest
+    environment: deploy-serverless
 
     steps:
       - name: Checkout repo
