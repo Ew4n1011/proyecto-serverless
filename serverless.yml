@@ -1,0 +1,29 @@
+service: proyecto-serverless
+
+provider:
+  name: aws
+  runtime: nodejs22.x
+
+  iam:
+    role: arn:aws:iam::533683209172:role/LabRole
+
+  environment:
+    USERS_TABLE: TablaUsuariosProyectoServerless
+
+functions:
+  login:
+    handler: handlers/auth.login
+    events:
+      - http:
+          path: login
+          method: POST
+
+  users:
+    handler: handlers/users.getUsers
+    events:
+      - http:
+          path: users
+          method: GET
+
+# plugins:
+#   - serverless-offline
