@@ -32,3 +32,7 @@ jobs:
           AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
           SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
         run: npx serverless deploy --stage dev --region us-east-1
+
+      - name: Test API has deployed
+        run: |
+          curl https://api.ewan.aulasxi.es/users
