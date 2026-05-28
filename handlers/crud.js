@@ -207,3 +207,125 @@ exports.createUser = async (event) => {
     };
   }
 };
+
+exports.updateUser = async (event) => {
+  try {
+    const body = JSON.parse(event.body || "{}");
+
+    const id = String(body.id ?? "");
+    const field = String(body.field ?? "");
+    const value = body.value;
+
+    if (!id || !field || value === undefined) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          message: "Faltan campos obligatorios",
+          required: ["id", "field", "value"],
+        }),
+      };
+    }
+
+    if (!/^\d+$/.test(id)) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          message: "ID inválido",
+        }),
+      };
+    }
+
+    const allowedFields = {
+      firstName: "firstName",
+      lastName: "lastName",
+      email: "email",
+      phoneNumber: "phoneNumber",
+      active: "active",
+      idEnterprise: "idEnterprise",
+      birthday: "birthday",
+    };
+
+    const dbField = allowedFields[field];
+
+    if (!dbField) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          message: "Campo no permitido",
+          allowedFields: Object.keys(allowedFields),
+        }),
+      };
+    }
+
+    if (dbField === "email" && !/^\S+@\S+\.\S+$/.test(String(value))) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          message: "Correo inválido",
+        }),
+      };
+    }
+
+    if (
+      ["active", "idEnterprise"].includes(dbField) &&
+      !/^\d+$/.test(String(value))
+    ) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          message: `${field} debe ser numérico`,
+        }),
+      };
+    }
+
+    const db = getPool();
+
+    const [result] = await db.execute(
+      `
+      UPDATE User
+      SET ${dbField} = ?
+      WHERE id = ?
+      LIMIT 1
+      `,
+      [value, id],
+    );
+
+    if (result.affectedRows === 0) {
+      return {
+        statusCode: 404,
+        body: JSON.stringify({
+          message: "Usuario no encontrado",
+        }),
+      };
+    }
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        message: "Usuario actualizado correctamente",
+        id: Number(id),
+        updated: {
+          field: dbField,
+          value,
+        },
+      }),
+    };
+  } catch (error) {
+    if (error.code === "ER_DUP_ENTRY") {
+      return {
+        statusCode: 409,
+        body: JSON.stringify({
+          message: "Ya existe un usuario con esos datos",
+        }),
+      };
+    }
+
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        message: "Error interno",
+        error: error.message,
+      }),
+    };
+  }
+};

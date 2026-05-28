@@ -44,5 +44,12 @@ functions:
           path: createUser
           method: POST
 
+  updateUser:
+    handler: handlers/crud.updateUser
+    events:
+      - http:
+          path: updateUser
+          method: POST
+
 # plugins:
 #   - serverless-offline
