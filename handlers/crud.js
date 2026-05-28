@@ -329,3 +329,64 @@ exports.updateUser = async (event) => {
     };
   }
 };
+
+exports.deleteUser = async (event) => {
+  try {
+    const body = JSON.parse(event.body || "{}");
+    const id = String(body.id ?? "").trim();
+
+    if (!id) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          message: "Introduce un ID",
+        }),
+      };
+    }
+
+    if (!/^\d+$/.test(id)) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          message: "ID inválido",
+        }),
+      };
+    }
+
+    const db = getPool();
+
+    const [result] = await db.execute(
+      `
+      DELETE FROM User
+      WHERE id = ?
+      LIMIT 1
+      `,
+      [id],
+    );
+
+    if (result.affectedRows === 0) {
+      return {
+        statusCode: 404,
+        body: JSON.stringify({
+          message: "Usuario no encontrado",
+        }),
+      };
+    }
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        message: "Usuario eliminado correctamente",
+        id: Number(id),
+      }),
+    };
+  } catch (error) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        message: "Error interno",
+        error: error.message,
+      }),
+    };
+  }
+};
