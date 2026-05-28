@@ -90,3 +90,120 @@ exports.getUser = async (event) => {
     };
   }
 };
+
+exports.createUser = async (event) => {
+  try {
+    const body = JSON.parse(event.body || "{}");
+
+    const nombre = String(body.nombre ?? "").trim();
+    const apellidos = String(body.apellidos ?? "").trim();
+    const password = String(body.password ?? "cambiame").trim();
+    const correo = String(body.correo ?? "").trim();
+    const telefono = String(body.telefono ?? "").trim();
+    const activo = body.activo ?? 1;
+    const locale = String(body.locale ?? "es_ES").trim();
+    const idEmpresa = body.id_empresa;
+    const fechaNacimiento = body.fechaNacimiento;
+
+    if (!nombre || !apellidos || !correo || !idEmpresa || !fechaNacimiento) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          message: "Faltan campos obligatorios",
+          required: [
+            "nombre",
+            "apellidos",
+            "correo",
+            "id_empresa",
+            "fechaNacimiento",
+          ],
+        }),
+      };
+    }
+
+    if (!/^\S+@\S+\.\S+$/.test(correo)) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          message: "Correo inválido",
+        }),
+      };
+    }
+
+    if (!/^\d+$/.test(String(idEmpresa))) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          message: "ID de empresa inválido",
+        }),
+      };
+    }
+
+    const db = getPool();
+
+    const [result] = await db.execute(
+      `
+      INSERT INTO User (
+        firstName,
+        lastName,
+        password,
+        email,
+        phoneNumber,
+        active,
+        createdOn,
+        locale,
+        idEnterprise,
+        birthday
+      )
+      VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?)
+      `,
+      [
+        nombre,
+        apellidos,
+        password,
+        correo,
+        telefono,
+        activo,
+        locale,
+        idEmpresa,
+        fechaNacimiento,
+      ],
+    );
+
+    return {
+      statusCode: 201,
+      body: JSON.stringify({
+        message: "Usuario creado correctamente",
+        id: result.insertId,
+        data: {
+          id: result.insertId,
+          nombre,
+          apellidos,
+          correo,
+          telefono,
+          activo,
+          locale,
+          id_empresa: Number(idEmpresa),
+          fechaNacimiento,
+        },
+      }),
+    };
+  } catch (error) {
+    if (error.code === "ER_DUP_ENTRY") {
+      return {
+        statusCode: 409,
+        body: JSON.stringify({
+          message: "Ya existe un usuario con esos datos",
+        }),
+      };
+    }
+
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        message: "Error interno",
+        error: error.message,
+      }),
+    };
+  }
+};
